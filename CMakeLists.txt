@@ -34,7 +34,8 @@ add_library(mef_core STATIC
   src/backends.cpp
 )
 target_include_directories(mef_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 mef_apply_warnings(mef_core)
 
@@ -69,6 +70,31 @@ endif()
 
 add_subdirectory(examples)
 add_subdirectory(benchmarks)
+
+# ---------------------------------------------------------------------------
+# Installable CMake package: find_package(MemoryExpansionFabric CONFIG REQUIRED)
+# ---------------------------------------------------------------------------
+include(CMakePackageConfigHelpers)
+install(TARGETS mef_core EXPORT MemoryExpansionFabricTargets
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib)
+install(DIRECTORY include/memory_expansion_fabric DESTINATION include)
+install(EXPORT MemoryExpansionFabricTargets
+  FILE MemoryExpansionFabricTargets.cmake
+  NAMESPACE MemoryExpansionFabric::
+  DESTINATION lib/cmake/MemoryExpansionFabric)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/MemoryExpansionFabricConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/MemoryExpansionFabricConfig.cmake
+  INSTALL_DESTINATION lib/cmake/MemoryExpansionFabric)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/MemoryExpansionFabricConfigVersion.cmake
+  COMPATIBILITY SameMajorVersion)
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/MemoryExpansionFabricConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/MemoryExpansionFabricConfigVersion.cmake
+  DESTINATION lib/cmake/MemoryExpansionFabric)
 
 if(MEF_BUILD_TESTS)
   enable_testing()

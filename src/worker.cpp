@@ -11,22 +11,12 @@
 #endif
 
 #include <cstdio>
-#include <cstdlib>
-#include <fstream>
 #include <string>
 #include <vector>
 
 namespace mef = memory_expansion_fabric;
-namespace {
-void workerTrace(const std::string& msg) {
-    std::ofstream f("mef_worker.trace", std::ios::app);
-    f << msg << "\n";
-}
-}
 
 int runWorker(int argc, char** argv) {
-    std::setvbuf(stdout, nullptr, _IONBF, 0);
-    std::printf("worker: starting pid=%lu\n", (unsigned long)::GetCurrentProcessId());
     std::uint64_t port = 0, wid = 0, boot = 0, epoch = 1;
     std::uint64_t region = 1, provider = 1, online = 0, latency = 100, bw = 1000000000, egen = 1, eid = 1;
     for (int i = 1; i < argc; ++i) {
@@ -44,7 +34,6 @@ int runWorker(int argc, char** argv) {
         else if (a == "--eid" && i+1 < argc) eid = std::stoull(argv[++i]);
     }
     if (port == 0) { std::printf("worker: --port required\n"); return 1; }
-    workerTrace("worker start wid=" + std::to_string(wid) + " boot=" + std::to_string(boot) + " port=" + std::to_string(port));
 
 #ifdef _WIN32
     WSADATA wsa;
@@ -60,8 +49,7 @@ int runWorker(int argc, char** argv) {
         if (::connect(s, (sockaddr*)&addr, sizeof(addr)) == 0) connected = true;
         else ::Sleep(25);
     }
-    if (!connected) { std::printf("worker: connect failed\n"); workerTrace("connect FAILED"); return 1; }
-    workerTrace("connected");
+    if (!connected) { std::printf("worker: connect failed\n"); return 1; }
 
     std::vector<std::uint8_t> hello;
     auto put64 = [&](std::uint64_t v){ for (int i = 0; i < 8; ++i) hello.push_back((uint8_t)((v >> (8*i)) & 0xFFu)); };

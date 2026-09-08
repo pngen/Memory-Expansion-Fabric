@@ -32,6 +32,7 @@ public:
     Fabric& operator=(Fabric&&) noexcept;
 
     // --- identity / epoch ---------------------------------------------------
+    static std::string version();
     CoordinatorEpoch epoch() const;
     void setEpoch(CoordinatorEpoch e);   // advance epoch (fences prior workers)
 

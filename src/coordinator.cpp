@@ -21,17 +21,9 @@
 #include <thread>
 #include <vector>
 #include <cstdio>
-#include <fstream>
 #include <string>
 
 namespace mef = memory_expansion_fabric;
-
-namespace {
-void coordTrace(const std::string& msg) {
-    std::ofstream f("mef_coord.trace", std::ios::app);
-    f << msg << "\n";
-}
-} // namespace
 
 namespace {
 
@@ -131,11 +123,9 @@ bool spawnWorker(CoordPtr c, mef::WorkerId w, mef::WorkerBootId boot, HANDLE& ou
     char* mutableCmd = const_cast<char*>(cmd.c_str());
     BOOL ok = ::CreateProcessA(nullptr, mutableCmd, nullptr, nullptr, FALSE, createFlags,
                                nullptr, nullptr, &si, &pi);
-    if (!ok) { std::printf("coordinator: CreateProcess failed %u\n", ::GetLastError()); coordTrace(("CreateProcess failed " + std::to_string(::GetLastError())).c_str()); return false; }
+    if (!ok) { std::printf("coordinator: CreateProcess failed %u\n", ::GetLastError()); return false; }
     ::CloseHandle(pi.hThread);
     outHandle = pi.hProcess;
-    std::printf("coordinator: spawned worker pid=%u port=%llu\n", pi.dwProcessId, (unsigned long long)c->port);
-    coordTrace("spawned worker pid=" + std::to_string(pi.dwProcessId));
 #else
     (void)w; (void)boot; (void)outHandle; (void)cmd;
     return false;
@@ -146,10 +136,8 @@ bool spawnWorker(CoordPtr c, mef::WorkerId w, mef::WorkerBootId boot, HANDLE& ou
 void workerMonitor(CoordPtr c, mef::WorkerId w, HANDLE h) {
 #ifdef _WIN32
     ::WaitForSingleObject(h, INFINITE);   // blocks until the child exits
-    coordTrace("workerMonitor: exit detected worker=" + std::to_string(w.value()));
     mef::Authority auth(c->epoch);
-    auto md = c->fabric.markWorkerDead(w, auth);
-    coordTrace("workerMonitor: markWorkerDead ok=" + std::to_string(md.ok()));
+    c->fabric.markWorkerDead(w, auth);
     std::lock_guard<std::mutex> lk(c->procMtx);
     c->procHandles.erase(w);
     ::CloseHandle(h);
@@ -199,9 +187,6 @@ void handleConnection(CoordPtr c, SOCK s) {
                     auto r = c->fabric.registerWorker(worker, boot, ep, pid, a);
                     isWorker = r.ok();
                     if (isWorker) { c->fabric.noteWorkerHandle(worker, true); }
-                    std::printf("coordinator: HELLO worker=%llu boot=%llu ok=%d\n",
-                                (unsigned long long)worker.value(), (unsigned long long)boot.value(), isWorker?1:0);
-                    coordTrace("HELLO worker=" + std::to_string(worker.value()) + " ok=" + std::to_string(isWorker));
                     std::vector<std::uint8_t> ack;
                     ack.push_back(isWorker ? 1 : 0);
                     sendFrame(c, s, mef::FrameType::HELLO_ACK, ack);
@@ -212,10 +197,7 @@ void handleConnection(CoordPtr c, SOCK s) {
                     auto ev = mef::decodeRegionEvidence(frame.payload);
                     if (ev.ok()) {
                         mef::Authority a(c->epoch, worker, boot);
-                        auto pub = c->fabric.publishRegionEvidence(ev.value(), a);
-                        std::printf("coordinator: publish evidence region=%llu ok=%d\n",
-                                    (unsigned long long)ev.value().header.region.value(), pub.ok()?1:0);
-                        coordTrace("publish region=" + std::to_string(ev.value().header.region.value()) + " ok=" + std::to_string(pub.ok()) + " err=" + (pub.ok()?std::string(""):pub.error().message));
+                        c->fabric.publishRegionEvidence(ev.value(), a);
                     }
                     break;
                 }
@@ -329,7 +311,6 @@ void handleConnection(CoordPtr c, SOCK s) {
                         killed = ::TerminateProcess(h, 1) != 0;
 #endif
                     }
-                    coordTrace("TERMINATE worker=" + std::to_string(w.value()) + " hadHandle=" + std::to_string(h!=nullptr) + " killed=" + std::to_string(killed));
                     std::vector<std::uint8_t> resp; resp.push_back(killed ? 1 : 0);
                     sendFrame(c, s, mef::FrameType::TERMINATE_WORKER_RESP, resp);
                     break;

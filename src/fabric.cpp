@@ -196,6 +196,10 @@ Fabric::~Fabric() = default;
 Fabric::Fabric(Fabric&&) noexcept = default;
 Fabric& Fabric::operator=(Fabric&&) noexcept = default;
 
+std::string Fabric::version() {
+    return "1.0.0";
+}
+
 CoordinatorEpoch Fabric::epoch() const {
     std::shared_lock lk(impl_->stateMtx);
     return impl_->epoch;

@@ -1,0 +1,18 @@
+Memory Expansion Fabric
+Copyright 2026 Summon Software Labs
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+Third-party attribution:
+  - This project is self-contained. It links only the C++ standard library,
+    the Windows SDK (for the reference multiprocess deployment and real system
+    discovery), and, when built with the optional CUDA proof, the NVIDIA CUDA
+    runtime. It does not redistribute any third-party source code.
+
+Telemetry policy:
+  - NO TELEMETRY TRANSMISSION. This project does not transmit any data off the
+    machine. It produces only local, machine-readable output (via its CLI,
+    diagnostics logs, and tests) and local persistence files that the user
+    explicitly chooses to create. Nothing is sent over the network by the
+    core runtime.
