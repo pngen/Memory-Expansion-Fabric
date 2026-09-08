@@ -1,0 +1,18 @@
+
+add_executable(fabric_smoke fabric_smoke.cpp)
+target_link_libraries(fabric_smoke PRIVATE mef_core)
+mef_apply_warnings(fabric_smoke)
+if(MSVC AND MEF_ENABLE_ASAN)
+  target_compile_options(fabric_smoke PRIVATE /fsanitize=address)
+  target_link_options(fabric_smoke PRIVATE /fsanitize=address)
+endif()
+add_test(NAME fabric_smoke COMMAND fabric_smoke)
+
+add_executable(mef_core_tests core_tests.cpp)
+target_link_libraries(mef_core_tests PRIVATE mef_core)
+mef_apply_warnings(mef_core_tests)
+if(MSVC AND MEF_ENABLE_ASAN)
+  target_compile_options(mef_core_tests PRIVATE /fsanitize=address)
+  target_link_options(mef_core_tests PRIVATE /fsanitize=address)
+endif()
+add_test(NAME mef_core_tests COMMAND mef_core_tests)

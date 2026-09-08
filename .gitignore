@@ -1,0 +1,22 @@
+# Build
+build/
+build-*/
+cmake-build-*/
+
+# Test / runtime artifacts
+*.bin
+*.tmp
+*.log
+mef_*.bin
+mef_*.tmp
+
+# Persistent test state
+tests/*.bin
+tests/*.tmp
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
