@@ -40,13 +40,17 @@ mef_apply_warnings(mef_core)
 
 if(MSVC AND MEF_ENABLE_ASAN)
   target_compile_options(mef_core PRIVATE /fsanitize=address)
-  target_link_options(mef_core PRIVATE /fsanitize=address)
 endif()
 
 # CLI / inspection tool.
 add_executable(mef_cli tools/cli.cpp)
 target_link_libraries(mef_cli PRIVATE mef_core)
 mef_apply_warnings(mef_cli)
+
+# Real CUDA consumer-gating proof. CMake's VS generator cannot drive nvcc (no
+# CUDA MSBuild toolset), so this proof is built/run by a standalone script
+# (proofs/build_cuda_proof.ps1) that requires a CUDA toolchain + GPU.
+option(MEF_ENABLE_CUDA "Build the real CUDA gating proof (via proofs/build_cuda_proof.ps1)" ON)
 
 # Reference multiprocess deployment executables.
 add_executable(mef_coordinator src/coordinator_main.cpp src/coordinator.cpp)
