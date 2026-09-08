@@ -197,7 +197,7 @@ Fabric::Fabric(Fabric&&) noexcept = default;
 Fabric& Fabric::operator=(Fabric&&) noexcept = default;
 
 std::string Fabric::version() {
-    return "1.0.0";
+    return "1.0.1";
 }
 
 CoordinatorEpoch Fabric::epoch() const {

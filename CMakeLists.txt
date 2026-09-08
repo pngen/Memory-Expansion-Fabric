@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 3.24)
-project(MemoryExpansionFabric VERSION 1.0.0 LANGUAGES CXX)
+project(MemoryExpansionFabric VERSION 1.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,6 +24,21 @@ function(mef_apply_warnings tgt)
   endif()
 endfunction()
 
+# MSVC's AddressSanitizer requires a consistent, fully-instrumented build: every
+# compilation unit and image that links mef_core must be compiled with
+# /fsanitize=address, or the linker rejects mef_core's ASan annotate_* symbols
+# with LNK2038. ASan also requires debug-information emission (/Zi) or cl emits
+# C5072, which the /W4 /WX policy turns into an error, and /DEBUG at link time
+# for ASan symbolization (else LNK4302). Applying the flags tree-wide keeps the
+# build genuinely instrumented and warning-clean without weakening /W4 /WX or
+# suppressing any diagnostic.
+if(MSVC AND MEF_ENABLE_ASAN)
+  add_compile_options(/fsanitize=address /Zi)
+  # /DEBUG for ASan symbolization; /INCREMENTAL:NO because ASan metadata is
+  # incompatible with incremental linking (LNK4300 otherwise).
+  add_link_options(/DEBUG /INCREMENTAL:NO)
+endif()
+
 add_library(mef_core STATIC
   src/fabric.cpp
   src/selection.cpp
@@ -38,10 +53,6 @@ target_include_directories(mef_core PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 mef_apply_warnings(mef_core)
-
-if(MSVC AND MEF_ENABLE_ASAN)
-  target_compile_options(mef_core PRIVATE /fsanitize=address)
-endif()
 
 # CLI / inspection tool.
 add_executable(mef_cli tools/cli.cpp)

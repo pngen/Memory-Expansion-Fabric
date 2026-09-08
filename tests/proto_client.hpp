@@ -27,11 +27,16 @@ public:
     MefClient(const MefClient&) = delete;
     MefClient& operator=(const MefClient&) = delete;
 
-    bool connectAny(const std::string& host, std::uint16_t port, int maxTries = 600) {
+    // Condition-based reconnect until the coordinator accepts the connection.
+    // There is no try-count / elapsed-time cutoff: if the coordinator process is
+    // genuinely unavailable the caller stays blocked (a live process is never
+    // reduced to a pass/fail by a timer). Terminal events are a socket() hard
+    // error or a successful connect.
+    bool connectAny(const std::string& host, std::uint16_t port) {
 #ifdef _WIN32
         static bool started = false;
         if (!started) { WSADATA wsa; if (::WSAStartup(MAKEWORD(2,2), &wsa) != 0) return false; started = true; }
-        for (int t = 0; t < maxTries; ++t) {
+        for (;;) {
             SOCKET s = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
             if (s == INVALID_SOCKET) return false;
             sockaddr_in addr{}; addr.sin_family = AF_INET; addr.sin_port = htons(port);
@@ -41,9 +46,9 @@ public:
             ::Sleep(10);
         }
 #else
-        (void)host; (void)port; (void)maxTries;
-#endif
+        (void)host; (void)port;
         return false;
+#endif
     }
 
     bool sendFrame(mef::FrameType type, const std::vector<std::uint8_t>& payload) {

@@ -32,19 +32,19 @@ static bool inspect(MefClient& cli, std::string& out) {
     return true;
 }
 
-// Poll INSPECT until the predicate holds or a very generous guard is reached.
-// This is a defect guard, not a pass-on-timeout mechanism.
+// Poll INSPECT until the predicate holds. The wait is genuinely condition-based:
+// it terminates only when the predicate is satisfied or the coordinator
+// connection breaks (a real, observable terminal event). A coordinator that is
+// alive but never reaches the condition is a genuine hang that must be
+// diagnosed as a defect; it is never converted to a pass/fail by any time limit.
 template <typename Pred>
 static bool waitUntil(MefClient& cli, Pred p) {
-    // Event-driven wait: poll INSPECT until the condition is met. The bound is
-    // only a hang guard (a genuinely stuck test is a defect, not a pass).
-    for (int i = 0; i < 50000; ++i) {
+    for (;;) {
         std::string t;
-        if (!inspect(cli, t)) return false;   // coordinator gone -> fail
+        if (!inspect(cli, t)) return false;   // coordinator gone -> fail (real terminal)
         if (p(t)) return true;
         ::Sleep(2);
     }
-    return false;
 }
 
 static std::uint8_t u8At(const std::vector<std::uint8_t>& v, std::size_t i) {

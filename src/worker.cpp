@@ -44,12 +44,14 @@ int runWorker(int argc, char** argv) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons((u_short)port);
     ::inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
-    bool connected = false;
-    for (int tries = 0; tries < 200 && !connected; ++tries) {
-        if (::connect(s, (sockaddr*)&addr, sizeof(addr)) == 0) connected = true;
-        else ::Sleep(25);
+    // Condition-based connect: block until the coordinator accepts the
+    // connection. There is no try-count / elapsed-time cutoff. If the
+    // coordinator is genuinely unavailable this worker stays blocked, which is
+    // the documented "hang remains a defect to diagnose" behavior.
+    for (;;) {
+        if (::connect(s, (sockaddr*)&addr, sizeof(addr)) == 0) break;
+        ::Sleep(25);
     }
-    if (!connected) { std::printf("worker: connect failed\n"); return 1; }
 
     std::vector<std::uint8_t> hello;
     auto put64 = [&](std::uint64_t v){ for (int i = 0; i < 8; ++i) hello.push_back((uint8_t)((v >> (8*i)) & 0xFFu)); };
