@@ -578,17 +578,19 @@ Result<void> Fabric::beginDrain(const RegionId& region, const Authority& a) {
     RegionRecord& rr = rit->second;
     if (!impl_->regionLifecycleAllowed(rr.lifecycle, RegionLifecycle::DRAINING))
         return Result<void>::fail(ErrorCode::INVALID_STATE_TRANSITION, "cannot begin drain");
-    // Move all free capacity into draining (no new reservations).
-    if (!rr.ledger.beginDrain(rr.ledger.free()))
-        return Result<void>::fail(ErrorCode::INVALID_ARGUMENT, "drain move failed");
-    // Reject outstanding RESERVED reservations (they cannot be used during drain).
+    // Return any RESERVED reservations to free first (exact accounting), then
+    // move all free capacity into draining (no new reservations are allowed).
     for (auto& [rid, rrec] : impl_->reservations) {
         (void)rid;
-        if (rrec.value.region == region &&
-            rrec.value.state == ReservationState::RESERVED) {
-            rrec.value.state = ReservationState::CANCELLED;
+        if (rrec.value.region == region && rrec.value.state == ReservationState::RESERVED) {
+            if (rr.ledger.release(rrec.value.bytes))
+                rrec.value.state = ReservationState::CANCELLED;
+            else
+                rrec.value.state = ReservationState::FENCED;
         }
     }
+    if (!rr.ledger.beginDrain(rr.ledger.free()))
+        return Result<void>::fail(ErrorCode::INVALID_ARGUMENT, "drain move failed");
     rr.lifecycle = RegionLifecycle::DRAINING;
     auto pit = impl_->providers.find(rr.descriptor.provider);
     if (pit != impl_->providers.end() && pit->second.lifecycle == Lifecycle::ONLINE)

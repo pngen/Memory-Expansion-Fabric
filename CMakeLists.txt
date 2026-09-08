@@ -31,6 +31,7 @@ add_library(mef_core STATIC
   src/snapshot.cpp
   src/persistence.cpp
   src/protocol.cpp
+  src/backends.cpp
 )
 target_include_directories(mef_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -41,6 +42,11 @@ if(MSVC AND MEF_ENABLE_ASAN)
   target_compile_options(mef_core PRIVATE /fsanitize=address)
   target_link_options(mef_core PRIVATE /fsanitize=address)
 endif()
+
+# CLI / inspection tool.
+add_executable(mef_cli tools/cli.cpp)
+target_link_libraries(mef_cli PRIVATE mef_core)
+mef_apply_warnings(mef_cli)
 
 # Reference multiprocess deployment executables.
 add_executable(mef_coordinator src/coordinator_main.cpp src/coordinator.cpp)
@@ -56,6 +62,9 @@ mef_apply_warnings(mef_worker)
 if(WIN32)
   target_link_libraries(mef_worker PRIVATE ws2_32)
 endif()
+
+add_subdirectory(examples)
+add_subdirectory(benchmarks)
 
 if(MEF_BUILD_TESTS)
   enable_testing()
