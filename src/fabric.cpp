@@ -729,10 +729,11 @@ Result<void> Fabric::registerWorker(const WorkerId& w, const WorkerBootId& boot,
     if (!a.worker.null() && (a.worker != w || a.boot != boot))
         return Result<void>::fail(ErrorCode::STALE_AUTHORITY, "worker authority mismatch");
     auto it = impl_->workers.find(w);
-    if (it != impl_->workers.end() && it->second.alive) {
-        // Already alive: a *new* boot id is a reincarnation; otherwise reject.
+    if (it != impl_->workers.end()) {
+        // A boot id is bound to one incarnation. Whether alive or dead, a
+        // previously seen boot must never be re-admitted as fresh authority.
         if (it->second.boot == boot)
-            return Result<void>::fail(ErrorCode::ALREADY_EXISTS, "worker already alive");
+            return Result<void>::fail(ErrorCode::ALREADY_EXISTS, "worker boot already used");
     }
     WorkerRecord rec;
     rec.boot = boot;
@@ -755,9 +756,11 @@ Result<void> Fabric::markWorkerDead(const WorkerId& w, const Authority& a) {
     WorkerBootId boot = it->second.boot;
     it->second.alive = false;
     it->second.lastSeenMs = nowMs();
-    // Fence all dynamic evidence and reservations owned by this worker.
+    // Fence dynamic evidence owned by this worker, and every reservation
+    // whose backing-region authority came from this worker (worker-bound
+    // reservations are fenced too).
+    std::vector<RegionId> workerRegions;
     for (auto& [rid, rr] : impl_->regions) {
-        (void)rid;
         if (rr.hasEvidence && rr.latest.header.worker == w &&
             rr.latest.header.boot == boot) {
             rr.evidenceStatus = EvidenceStatus::REVALIDATION_REQUIRED;
@@ -765,11 +768,16 @@ Result<void> Fabric::markWorkerDead(const WorkerId& w, const Authority& a) {
                 rr.lifecycle != RegionLifecycle::DRAINING &&
                 rr.lifecycle != RegionLifecycle::UNAVAILABLE)
                 rr.lifecycle = RegionLifecycle::REVALIDATION_REQUIRED;
+            workerRegions.push_back(rid);
         }
     }
     for (auto& [rid, rrec] : impl_->reservations) {
         (void)rid;
-        if (rrec.value.worker == w)
+        bool byWorker = rrec.value.worker == w;
+        bool byRegion = false;
+        for (auto r : workerRegions)
+            if (rrec.value.region == r) { byRegion = true; break; }
+        if (byWorker || byRegion)
             Impl::fence(*impl_, rrec.value, "worker died");
     }
     return Result<void>::success();

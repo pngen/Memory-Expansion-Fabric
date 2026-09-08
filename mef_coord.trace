@@ -1,0 +1,15 @@
+spawned worker pid=26632
+HELLO worker=3 ok=1
+publish region=1 ok=1 err=
+TERMINATE worker=3 hadHandle=1 killed=1
+workerMonitor: exit detected worker=3
+workerMonitor: markWorkerDead ok=1
+spawned worker pid=2284
+HELLO worker=3 ok=1
+publish region=1 ok=1 err=
+spawned worker pid=18860
+HELLO worker=3 ok=1
+publish region=1 ok=1 err=
+spawned worker pid=24376
+HELLO worker=3 ok=1
+publish region=1 ok=1 err=

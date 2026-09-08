@@ -8,6 +8,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(GNUInstallDirs)
 
+# Put all executables in a single bin/ dir so tests can locate peers easily.
+foreach(cfg DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfg} ${CMAKE_BINARY_DIR}/bin)
+endforeach()
+
 option(MEF_BUILD_TESTS "Build tests" ON)
 option(MEF_ENABLE_ASAN "Build with AddressSanitizer" ON)
 
@@ -25,6 +30,7 @@ add_library(mef_core STATIC
   src/reservation.cpp
   src/snapshot.cpp
   src/persistence.cpp
+  src/protocol.cpp
 )
 target_include_directories(mef_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -34,6 +40,21 @@ mef_apply_warnings(mef_core)
 if(MSVC AND MEF_ENABLE_ASAN)
   target_compile_options(mef_core PRIVATE /fsanitize=address)
   target_link_options(mef_core PRIVATE /fsanitize=address)
+endif()
+
+# Reference multiprocess deployment executables.
+add_executable(mef_coordinator src/coordinator_main.cpp src/coordinator.cpp)
+target_link_libraries(mef_coordinator PRIVATE mef_core)
+mef_apply_warnings(mef_coordinator)
+if(WIN32)
+  target_link_libraries(mef_coordinator PRIVATE ws2_32)
+endif()
+
+add_executable(mef_worker src/worker_main.cpp src/worker.cpp)
+target_link_libraries(mef_worker PRIVATE mef_core)
+mef_apply_warnings(mef_worker)
+if(WIN32)
+  target_link_libraries(mef_worker PRIVATE ws2_32)
 endif()
 
 if(MEF_BUILD_TESTS)
