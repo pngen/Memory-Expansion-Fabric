@@ -1,8 +1,0 @@
-worker start wid=3 boot=10 port=7571
-connected
-worker start wid=3 boot=20 port=7571
-connected
-worker start wid=3 boot=10 port=7576
-connected
-worker start wid=3 boot=30 port=7576
-connected

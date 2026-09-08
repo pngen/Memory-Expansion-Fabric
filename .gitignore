@@ -14,6 +14,11 @@ mef_*.tmp
 tests/*.bin
 tests/*.tmp
 
+# Runtime traces
+mef_coord.trace
+mef_worker.trace
+*.trace
+
 # CMake
 CMakeCache.txt
 CMakeFiles/
