@@ -60,8 +60,8 @@ Software Labs repository.
 `src/`                               core runtime: fabric, selection, reservation,
                                        persistence, protocol, backends
 `tools/cli.cpp`                      inspection CLI (mef_cli)
-`tools/worker_main.cpp`              reference worker (mef_worker)
-`tools/coordinator_main.cpp`         reference coordinator (mef_coordinator)
+`src/worker_main.cpp`              reference worker (mef_worker)
+`src/coordinator_main.cpp`         reference coordinator (mef_coordinator)
 `examples/`                          runnable contract examples
 `benchmarks/`                        completed-work benchmark
 `proofs/`                            real CUDA consumer-gating proof (build script)
